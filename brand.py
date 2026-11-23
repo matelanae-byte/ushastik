@@ -1,6 +1,8 @@
-"""Ushastik's vector identity. No asset/font downloads at runtime."""
+"""Application name and inherited vector artwork. No asset/font downloads at runtime."""
 from pathlib import Path
 import sys
+
+APP_NAME = "AI Transcriber"
 
 BG, PAPER, INK = '#F5F3ED', '#FFFFFF', '#263A31'
 MUTED, GREEN, GREEN_LIGHT = '#69756D', '#315D47', '#EAF1E9'

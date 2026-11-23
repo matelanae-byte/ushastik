@@ -5,10 +5,10 @@ import os
 from pathlib import Path
 import sys
 
-from brand import BG, PAPER, INK, MUTED, GREEN, GREEN_LIGHT, LINE, mascot, icon
+from brand import APP_NAME, BG, PAPER, INK, MUTED, GREEN, GREEN_LIGHT, LINE, mascot, icon
 from engine import VERSION, atomic_json
 
-LOCAL_TITLE = "Ушастик работает локально"
+LOCAL_TITLE = f"{APP_NAME} работает локально"
 LOCAL_TEXT = (
     "Все вычисления выполняются на ресурсах вашего компьютера. "
     "Записи и расшифровки остаются у вас и никуда не отправляются. "
@@ -80,7 +80,7 @@ class ApplicationInfo:
         if self.notice_window is not None and self.notice_window.winfo_exists():
             self.notice_window.lift()
             return
-        dialog = self.window("Локальная работа · Ушастик", 600, 475)
+        dialog = self.window(f"Локальная работа · {APP_NAME}", 600, 475)
         self.notice_window = dialog
         dialog.resizable(False, False)
         content = tk.Frame(dialog, bg=BG, padx=28, pady=22)
@@ -129,7 +129,7 @@ class ApplicationInfo:
         if self.about_window is not None and self.about_window.winfo_exists():
             self.about_window.lift()
             return
-        dialog = self.window("О программе · Ушастик", 660, 650)
+        dialog = self.window(f"О программе · {APP_NAME}", 660, 650)
         self.about_window = dialog
         dialog.minsize(600, 540)
         head = tk.Frame(dialog, bg=BG, padx=24, pady=20)
@@ -139,7 +139,7 @@ class ApplicationInfo:
         mascot(mark, 0, 0, 58)
         names = tk.Frame(head, bg=BG)
         names.pack(side="left")
-        self.label(names, "Ушастик", 24, bold=True).pack(anchor="w")
+        self.label(names, APP_NAME, 24, bold=True).pack(anchor="w")
         self.label(names, f"Услышит. Разберёт. Запишет.  /  Версия {VERSION}", 10, MUTED).pack(anchor="w", pady=(3, 0))
         card = tk.Frame(dialog, bg=GREEN_LIGHT, padx=20, pady=14)
         card.pack(fill="x", padx=24, pady=(0, 14))
@@ -160,7 +160,7 @@ class ApplicationInfo:
             ("Для чего", "Расшифровывает записи звонков и встреч, разделяет реплики по голосам и добавляет таймкоды. "
              "Имена или роли участников можно указать после обработки."),
             ("На ресурсах вашего компьютера", "\n".join(LOCAL_DETAILS) + "\nСкорость зависит от вашего процессора, памяти и длины записи."),
-            ("Что сохраняется", "TXT — текст разговора, SRT — субтитры, JSON — реплики, слова и метаданные. "
+            ("Что сохраняется", "TXT — текст разговора, SRT — субтитры, JSON — реплики, слова и метаданные, DOCX — документ Word. "
              "Результаты остаются в выбранной вами папке. Старые расшифровки не перезаписываются."),
             ("Как пользоваться", "Добавьте файлы или папку, выберите разбивку и число участников, нажмите «Расшифровать». "
              "Затем выберите готовую запись, чтобы прочитать диалог, задать имена и скопировать текст. "

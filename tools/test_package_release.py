@@ -107,6 +107,15 @@ class ReleasePackageTests(unittest.TestCase):
             self.assertIn("Ушастик/LICENSES/FFmpeg.txt", archive.namelist())
             self.assertIsNone(archive.testzip())
 
+    def test_windows_accepts_renamed_executable_and_keeps_licenses(self):
+        executable = "AI Transcriber/AI Transcriber.exe"
+        with zipfile.ZipFile(self.archive, "w") as archive:
+            self.member(archive, executable, b"windows executable")
+        package_release(self.archive, self.output, self.source, "windows")
+        with zipfile.ZipFile(self.output) as archive:
+            self.assertEqual(archive.read(executable), b"windows executable")
+            self.assertIn("AI Transcriber/LICENSES/FFmpeg.txt", archive.namelist())
+
     def test_rejects_zip64_bad_eof_duplicates_and_existing_output(self):
         with zipfile.ZipFile(self.archive, "w") as archive:
             self.member(archive, "Ушастик/Ushastik.exe", b"exe")

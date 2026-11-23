@@ -146,9 +146,9 @@ def read_directory(path):
 def documents(source, platform, directory, release_readme=None):
     names = {member.name for member in directory.members}
     if platform == "windows":
-        executables = [PurePosixPath(n) for n in names if PurePosixPath(n).name == "Ushastik.exe"]
+        executables = [PurePosixPath(n) for n in names if PurePosixPath(n).name in {"AI Transcriber.exe", "Ushastik.exe"}]
         if len(executables) != 1 or len(executables[0].parts) > 2:
-            fail("Expected one top-level Ushastik.exe, optionally inside one root folder")
+            fail("Expected one AI Transcriber.exe or Ushastik.exe, optionally inside one root folder")
         prefix = str(executables[0].parent)
         prefix = "" if prefix == "." else prefix + "/"
         readme = source / "ПРОЧТИ МЕНЯ.txt"

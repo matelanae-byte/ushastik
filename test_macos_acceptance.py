@@ -13,6 +13,8 @@ import inspect
 import json
 import os
 from pathlib import Path
+from xml.etree import ElementTree
+from zipfile import ZipFile
 import platform
 import plistlib
 import signal
@@ -129,7 +131,7 @@ def run_job(binary, work, env, paths, *, diarize=False, split=False):
 
 def result_data(item):
     folder = Path(item["output"])
-    assert all((folder / ("transcript." + ext)).is_file() for ext in ("json", "txt", "srt")), folder
+    assert all((folder / ("transcript." + ext)).is_file() for ext in ("json", "txt", "srt", "docx")), folder
     data = read_json(folder / "transcript.json")
     for segment in data["segments"]:
         assert 0 <= segment["start"] < segment["end"] <= data["duration_seconds"] + .001, segment
@@ -152,6 +154,10 @@ def check_rename(folder, before, names):
     for ext in ("txt", "srt"):
         text = (folder / ("transcript." + ext)).read_text(encoding="utf-8-sig")
         assert all(name in text for name in names.values()), (ext, names)
+    with ZipFile(folder / "transcript.docx") as archive:
+        document = ElementTree.fromstring(archive.read("word/document.xml"))
+        word_text = "".join(document.itertext())
+    assert all(name in word_text for name in names.values()), names
     return after
 
 
@@ -185,7 +191,7 @@ def backend_checks(binary, work, fixtures, env):
     right = " ".join(s["text"].casefold() for s in sd["segments"] if s["channel"] == 2)
     assert sd["mode"] == "channels" and "анна" in left and "насос" in right, (left, right)
     return {"diarized": dialog, "plain_queue": plain, "stereo": stereo,
-            "rename": "TXT/SRT/JSON updated; all other JSON fields, including words/times, unchanged"}
+            "rename": "TXT/SRT/JSON/DOCX updated; all other JSON fields, including words/times, unchanged"}
 
 
 def descendants(widget):
@@ -354,7 +360,7 @@ def gui_checks(args):
             ui["rename_button"].invoke()
             root.update()
             dialogs = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel) and w.winfo_exists()
-                       and w.title() == "Имена участников · Ушастик"]
+                       and w.title() == "Имена участников · AI Transcriber"]
             assert len(dialogs) == 1, dialogs
             dialog = dialogs[0]
             fields = [w for w in descendants(dialog) if isinstance(w, tk.Entry)]

@@ -1,4 +1,4 @@
-"""Ushastik: an offline transcription workspace and worker supervisor."""
+"""AI Transcriber: an offline transcription workspace and worker supervisor."""
 from __future__ import annotations
 import json
 import os
@@ -10,8 +10,8 @@ import tempfile
 import time
 import uuid
 
-from engine import VERSION, EXTENSIONS, atomic_json, collect_paths, run_job, rename_speakers
-from brand import BG, PAPER, INK, MUTED, GREEN, GREEN_LIGHT, ORANGE, LINE, mascot, icon
+from engine import VERSION, EXTENSIONS, atomic_json, collect_paths, run_job, rename_speakers, read_transcript
+from brand import APP_NAME, BG, PAPER, INK, MUTED, GREEN, GREEN_LIGHT, ORANGE, LINE, mascot, icon
 from information import ApplicationInfo
 
 
@@ -27,7 +27,7 @@ def gui(paths=()):
     from tkinterdnd2 import TkinterDnD, DND_FILES
 
     root = TkinterDnD.Tk()
-    root.title(f"Ушастик · {VERSION}")
+    root.title(f"{APP_NAME} · {VERSION}")
     compact = sys.platform == "darwin" and (root.winfo_screenwidth() < 1200 or root.winfo_screenheight() < 900)
     if sys.platform == "darwin":
         width, height = min(1180, root.winfo_screenwidth() - 64), min(820, root.winfo_screenheight() - 128)
@@ -56,8 +56,9 @@ def gui(paths=()):
     items, process, job_dir, job_id = {}, None, None, None
     closing, cancel_requested, started = False, False, 0
     preview_key, preview_data = None, None
-    old_output = Path.home() / "Documents" / "Расшифровки монстра"
-    default_output = old_output if old_output.is_dir() else Path.home() / "Documents" / "Ушастик"
+    documents = Path.home() / "Documents"
+    default_output = next((documents / name for name in (APP_NAME, "Ушастик", "Расшифровки монстра")
+                           if (documents / name).is_dir()), documents / APP_NAME)
     output = tk.StringVar(value=str(default_output))
     language, mode, speaker_number = tk.StringVar(value="Русский"), tk.StringVar(value="По голосам"), tk.StringVar(value="2")
     status = tk.StringVar(value="Готов слушать")
@@ -88,7 +89,7 @@ def gui(paths=()):
     mascot(mark, 1, 1, 50)
     wordmark = tk.Frame(head, bg=BG)
     wordmark.pack(side="left")
-    label(wordmark, "Ушастик", 26, bold=True).pack(anchor="w")
+    label(wordmark, APP_NAME, 26, bold=True).pack(anchor="w")
     label(wordmark, "Услышит. Разберёт. Запишет.", 10, MUTED).pack(anchor="w")
     badge = tk.Frame(head, bg=GREEN_LIGHT, padx=12, pady=8)
     badge.pack(side="right")
@@ -137,7 +138,7 @@ def gui(paths=()):
                 paint_item(item)
         if additions:
             status.set("Записи в очереди")
-            detail.set("Можно начать. Ушастик обработает записи по очереди.")
+            detail.set("Можно начать. Записи будут обработаны по очереди.")
         elif raw:
             status.set("Подходящих записей не найдено")
             detail.set("Добавьте аудио или видео со звуком. Папки просматриваются без вложенных папок.")
@@ -213,7 +214,7 @@ def gui(paths=()):
     mascot(bunny, 1, 1, 80)
     empty_title = label(empty, "Здесь появится разговор", 15, bold=True)
     empty_title.pack()
-    empty_help = label(empty, "Добавьте запись слева и запустите расшифровку.\nУшастик разложит разговор по голосам.",
+    empty_help = label(empty, "Добавьте запись слева и запустите расшифровку.\nВ режиме «По голосам» реплики получат подписи участников.",
                        10, MUTED, justify="center")
     empty_help.pack(pady=(9, 0))
     ptools = tk.Frame(conversation, bg=PAPER, padx=14, pady=11)
@@ -234,7 +235,7 @@ def gui(paths=()):
         data = None
         if item and item.get("output"):
             try:
-                data = json.loads((Path(item["output"]) / "transcript.json").read_text(encoding="utf-8"))
+                data = read_transcript(Path(item["output"]))
             except (OSError, ValueError) as exc:
                 selected_detail.set(f"Не удалось прочитать результат: {exc}")
         if data and data.get("segments"):
@@ -260,10 +261,10 @@ def gui(paths=()):
         else:
             empty.place(relx=0.5, rely=0.47, anchor="center")
             preview_sub.set(Path(item["path"]).name if item else "Текст с таймкодами и подписями участников")
-            title, help_text = "Здесь появится разговор", "Добавьте запись слева и запустите расшифровку.\nУшастик разложит разговор по голосам."
+            title, help_text = "Здесь появится разговор", "Добавьте запись слева и запустите расшифровку.\nВ режиме «По голосам» реплики получат подписи участников."
             if item:
                 title, help_text = {
-                    "running": ("Ушастик слушает…", "Текст появится, когда эта запись будет готова."),
+                    "running": ("Распознаю речь…", "Текст появится, когда эта запись будет готова."),
                     "error": ("Не получилось прочитать запись", "Подробности — под очередью.\nМожно проверить файл и повторить обработку."),
                     "no_speech": ("Речь не найдена", "В этой записи не удалось распознать речь."),
                     "cancelled": ("Обработка остановлена", "Нажмите «Расшифровать», чтобы повторить.")
@@ -317,19 +318,19 @@ def gui(paths=()):
             return
         folder = Path(item["output"])
         try:
-            names = json.loads((folder/"transcript.json").read_text(encoding="utf-8")).get("speaker_names", {})
+            names = read_transcript(folder).get("speaker_names", {})
             if not names:
                 return
         except (OSError, ValueError) as exc:
             messagebox.showerror("Не удалось прочитать результат", str(exc), parent=root)
             return
         dialog = tk.Toplevel(root)
-        dialog.title("Имена участников · Ушастик")
+        dialog.title(f"Имена участников · {APP_NAME}")
         dialog.configure(bg=BG, padx=24, pady=20)
         dialog.transient(root)
         dialog.resizable(False, False)
         label(dialog, "Кто участвует в разговоре?", 16, bold=True).pack(anchor="w")
-        label(dialog, "Можно указать имена или роли: менеджер, клиент.\nПодписи обновятся в тексте, субтитрах и JSON.",
+        label(dialog, "Можно указать имена или роли: менеджер, клиент.\nПодписи обновятся во всех форматах, включая Word.",
               10, MUTED, justify="left").pack(anchor="w", pady=(8, 16))
         fields = {}
         for key, name in names.items():
@@ -348,7 +349,7 @@ def gui(paths=()):
                 return
             show_preview(item, force=True)
             status.set("Имена сохранены")
-            detail.set("Подписи обновлены в разговоре, TXT, SRT и JSON.")
+            detail.set("Подписи обновлены в разговоре, TXT, SRT, JSON и DOCX.")
             dialog.destroy()
         button(dialog, "Сохранить имена", save, True).pack(anchor="e", pady=(18, 0))
         dialog.grab_set()
@@ -383,7 +384,7 @@ def gui(paths=()):
     label(options, "Язык", 10, MUTED).pack(side="left", padx=(22, 8))
     language_menu = menu(options, language, ("Русский", "Авто", "English"), 9)
     language_menu.pack(side="left")
-    label(options, "TXT  ·  SRT  ·  JSON", 9, MUTED).pack(side="right")
+    label(options, "TXT  ·  SRT  ·  JSON  ·  DOCX", 9, MUTED).pack(side="right")
     label(settings, size=9, color=MUTED, textvariable=mode_hint, anchor="w").grid(row=1, column=0, sticky="ew", pady=(3, 5) if compact else (5, 8))
     dest = tk.Frame(settings, bg=PAPER)
     dest.grid(row=2, column=0, sticky="ew")
@@ -448,7 +449,7 @@ def gui(paths=()):
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
             cancel_requested, started = False, time.monotonic()
             progress["value"] = 0
-            status.set("Ушастик готовится слушать…")
+            status.set("Загружаю локальные модели…")
             detail.set("Первый запуск может занять немного времени: загружаются локальные модели.")
             if not tree.selection():
                 tree.selection_set(items[os.path.normcase(pending[0])]["iid"])
@@ -475,7 +476,7 @@ def gui(paths=()):
     progress.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(8 if compact else 12, 0))
     bottom = tk.Frame(body, bg=BG)
     bottom.grid(row=4, column=0, sticky="ew", pady=(0, 6 if compact else 12))
-    label(bottom, "Ушастик  /  "+VERSION, 9, MUTED).pack(side="left")
+    label(bottom, f"{APP_NAME}  /  {VERSION}", 9, MUTED).pack(side="left")
     about_button = button(bottom, "О программе", information.show_about, small=True)
     about_button.configure(pady=3, bg=BG, highlightthickness=0)
     about_button.pack(side="left", padx=(16, 0))
@@ -546,7 +547,7 @@ def gui(paths=()):
     def close():
         nonlocal closing
         if process is not None:
-            if messagebox.askyesno("Обработка ещё идёт", "Остановить обработку и закрыть Ушастика?", parent=root):
+            if messagebox.askyesno("Обработка ещё идёт", f"Остановить обработку и закрыть {APP_NAME}?", parent=root):
                 closing = True
                 if process is None:
                     root.destroy()

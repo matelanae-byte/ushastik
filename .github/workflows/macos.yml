@@ -1,4 +1,4 @@
-name: Ушастик — сборка и тест macOS
+name: AI Transcriber — сборка и тест macOS
 on:
   workflow_dispatch:
 permissions:
@@ -29,18 +29,18 @@ jobs:
       - name: Зависимости для этой архитектуры
         run: python -m pip install -r requirements.txt -c macos/constraints.txt
       - name: Проверить обработку слов и спикеров
-        run: python -m unittest test_stitch test_diarization test_engine_boundaries
+        run: python -m unittest test_stitch test_diarization test_engine_boundaries test_docx_export
       - name: Подготовить модели с проверкой SHA-256
         run: python fetch_models.py
       - name: Собрать и подписать .app
         run: python build_macos.py --arch '${{ matrix.arch }}'
       - name: Проверить на настоящем Mac
-        run: python test_macos_acceptance.py --app dist/Ушастик.app --work acceptance --fixtures fixtures
+        run: python test_macos_acceptance.py --app 'dist/AI Transcriber.app' --work acceptance --fixtures fixtures
       - name: Проверить распакованный архив
         run: |
           mkdir -p .build/unpacked
-          /usr/bin/ditto -x -k 'dist/Ушастик-macOS-${{ matrix.arch }}-0.3.1.zip' .build/unpacked
-          /usr/bin/codesign --verify --deep --strict .build/unpacked/Ушастик.app
+          /usr/bin/ditto -x -k 'dist/AI-Transcriber-macOS-${{ matrix.arch }}-0.3.1.zip' .build/unpacked
+          /usr/bin/codesign --verify --deep --strict '.build/unpacked/AI Transcriber.app'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

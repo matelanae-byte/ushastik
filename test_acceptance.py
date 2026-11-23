@@ -74,7 +74,7 @@ for item in mixed["items"]:
     if item.get("output"):
         result = Path(item["output"])
         d = json.loads((result / "transcript.json").read_text(encoding="utf-8"))
-        assert (result / "transcript.txt").is_file() and (result / "transcript.srt").is_file()
+        assert all((result / f"transcript.{ext}").is_file() for ext in ("txt", "srt", "docx"))
         for seg in d["segments"]:
             assert 0 <= seg["start"] < seg["end"] <= d["duration_seconds"] + 0.001
         if item["status"] == "done":

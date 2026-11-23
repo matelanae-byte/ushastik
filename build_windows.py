@@ -17,7 +17,7 @@ if sys.platform != "win32":
     raise SystemExit("Сборку Windows нужно запускать Windows Python")
 source = Path(__file__).resolve().parent
 args.work.mkdir(parents=True, exist_ok=True)
-spec = args.work / "Ushastik.spec"
+spec = args.work / "AI Transcriber.spec"
 spec.write_text('''from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 a = Analysis([SOURCE], pathex=[ROOT],
     datas=[(MODEL, 'model'), (SPEAKERS, 'speaker-model'), (ASSETS, 'assets')] + collect_data_files('faster_whisper') + collect_data_files('tkinterdnd2') + collect_data_files('sherpa_onnx'),
@@ -26,15 +26,15 @@ a = Analysis([SOURCE], pathex=[ROOT],
     excludes=['torch', 'tensorflow', 'transformers', 'scipy', 'matplotlib'],
     noarchive=False)
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='Ushastik', icon=ICON,
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='AI Transcriber', icon=ICON,
           console=False, debug=False, strip=False, upx=False)
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='Ushastik')
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='AI Transcriber')
 '''.replace("[SOURCE]", repr([str(source / "app.py")])).replace("[ROOT]", repr([str(source)]))
     .replace("MODEL", repr(str(args.model.resolve()))).replace("SPEAKERS", repr(str(args.speakers.resolve())))
     .replace("ASSETS", repr(str(source / "assets"))).replace("ICON", repr(str(source / "assets" / "ushastik.ico"))), encoding="utf-8")
 subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm",
                 "--distpath", str(args.dist), "--workpath", str(args.work / "pyinstaller"), str(spec)], check=True)
-target = args.dist / "Ushastik"
+target = args.dist / "AI Transcriber"
 shutil.copy2(source / "ПРОЧТИ МЕНЯ.txt", target)
 notices = target / "licenses"
 notices.mkdir(exist_ok=True)

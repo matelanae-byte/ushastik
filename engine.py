@@ -13,6 +13,8 @@ import tempfile
 import time
 import uuid
 
+from word_export import render_docx
+
 os.environ.update(HF_HUB_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1", DO_NOT_TRACK="1")
 
 VERSION = "0.3.1"
@@ -105,6 +107,11 @@ def decode(path: Path, split: bool):
     return [audio], count / SAMPLE_RATE
 
 
+def read_transcript(folder: Path) -> dict:
+    """Load the structured transcript shared by presentation and downstream processing."""
+    return json.loads((folder / "transcript.json").read_text(encoding="utf-8"))
+
+
 def write_transcripts(folder: Path, data: dict) -> None:
     """Render all formats from the same structured transcript, including edited names."""
     names = data.get("speaker_names", {})
@@ -128,6 +135,7 @@ def write_transcripts(folder: Path, data: dict) -> None:
     payloads = {
         "transcript.txt": ("\n\n".join(["\n".join(header)] + text) + "\n").encode("utf-8-sig"),
         "transcript.srt": "\n".join(subtitles).encode("utf-8-sig"),
+        "transcript.docx": render_docx(header, text),
         "transcript.json": (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
     }
     previous = {name: (folder / name).read_bytes() if (folder / name).exists() else None for name in payloads}
@@ -151,7 +159,7 @@ def write_transcripts(folder: Path, data: dict) -> None:
 
 
 def rename_speakers(folder: Path, names: dict) -> None:
-    data = json.loads((folder / "transcript.json").read_text(encoding="utf-8"))
+    data = read_transcript(folder)
     known = data.get("speaker_names", {})
     if set(names) != set(known):
         raise ValueError("Список спикеров изменился. Откройте окно имён заново")

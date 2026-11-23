@@ -30,9 +30,10 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='Ushastik',
     console=False, debug=False, strip=False, upx=False, argv_emulation=False,
     target_arch={arch!r}, codesign_identity=None, entitlements_file=None)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='Ushastik')
-app = BUNDLE(coll, name='Ушастик.app', icon={str(source / 'assets/ushastik.icns')!r},
+app = BUNDLE(coll, name='AI Transcriber.app', icon={str(source / 'assets/ushastik.icns')!r},
     bundle_identifier='ru.kurzemnek.ushastik',
-    info_plist={{'CFBundleDisplayName': 'Ушастик', 'CFBundleShortVersionString': {VERSION!r},
+    info_plist={{'CFBundleDisplayName': 'AI Transcriber', 'CFBundleName': 'AI Transcriber',
+        'CFBundleShortVersionString': {VERSION!r},
         'CFBundleVersion': {VERSION!r}, 'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '15.0',
         'CFBundleDocumentTypes': [{{'CFBundleTypeName': 'Аудио и видео',
@@ -118,9 +119,9 @@ def main():
     environment = dict(os.environ, MACOSX_DEPLOYMENT_TARGET="15.0", PYTHONDONTWRITEBYTECODE="1")
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--distpath", str(args.dist),
                     "--workpath", str(args.work / "pyinstaller"), str(spec)], check=True, env=environment)
-    app = args.dist / "Ушастик.app"
+    app = args.dist / "AI Transcriber.app"
     subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
-    archive = args.dist / f"Ушастик-macOS-{args.arch}-{VERSION}.zip"
+    archive = args.dist / f"AI-Transcriber-macOS-{args.arch}-{VERSION}.zip"
     subprocess.run(["/usr/bin/ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(app), str(archive)], check=True)
     (args.dist / "build-macos.json").write_text(json.dumps({**details, "version": VERSION, "app": str(app),
         "archive": str(archive), "archive_sha256": sha256(archive), "signing": "ad-hoc; not notarized",
